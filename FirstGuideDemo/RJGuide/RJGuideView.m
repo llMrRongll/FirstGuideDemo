@@ -8,11 +8,14 @@
 
 #import "RJGuideView.h"
 #import "Const.h"
+#import "UIView+Guide.h"
 
 @implementation RJGuideView
 {
     BOOL _presented;
     NSMutableArray * _showGuideViews;
+    UIBezierPath *_basePath;
+    int guideIndex;
 }
 
 + (id)sharedInstance{
@@ -27,10 +30,12 @@
 - (instancetype)init{
     if(self = [super init]){
         self.frame = [UIScreen mainScreen].bounds;
+        [self initPath];
         self.layer.backgroundColor = [UIColor colorWithRed:0 green:0 blue:0 alpha:0.5].CGColor;
         _showGuideViews = [[NSMutableArray alloc] init];
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(addView:) name:RJGUIDE_NOTIFICATION_TYPE_ADD_VIEW object:nil];
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(removeView:) name:RJGUIDE_NOTIFICATION_TYPE_REMOVE_VIEW object:nil];
+        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(screenOrientationChanged:) name:UIDeviceOrientationDidChangeNotification object:nil];
     }
     return self;
 }
@@ -38,23 +43,32 @@
 - (void)dealloc{
     [[NSNotificationCenter defaultCenter] removeObserver:self name:RJGUIDE_NOTIFICATION_TYPE_REMOVE_VIEW object:nil];
     [[NSNotificationCenter defaultCenter] removeObserver:self name:RJGUIDE_NOTIFICATION_TYPE_ADD_VIEW object:nil];
+    [[NSNotificationCenter defaultCenter] removeObserver:self name:UIDeviceOrientationDidChangeNotification object:nil];
 }
 
-- (void)addView:(NSNotification *)noti{
-    if(![_showGuideViews containsObject:noti.object]){
-        if([self getControllerFromView:noti.object]){
-            [_showGuideViews addObject:noti.object];
+#pragma NotificationObserver
+- (void)addView:(NSNotification *)notification{
+    if(![_showGuideViews containsObject:notification.object]){
+        if([self getControllerFromView:notification.object]){
+            [_showGuideViews addObject:notification.object];
         }
     }
     NSLog(@"views count %ld", _showGuideViews.count);
 }
 
-- (void)removeView:(NSNotification *)noti{
-    if([_showGuideViews containsObject:noti.object]){
-        [_showGuideViews removeObject:noti.object];
+- (void)removeView:(NSNotification *)notification{
+    if([_showGuideViews containsObject:notification.object]){
+        [_showGuideViews removeObject:notification.object];
     }
     NSLog(@"views count %ld", _showGuideViews.count);
     
+}
+// 适配一下屏幕旋转
+- (void)screenOrientationChanged:(NSNotification *)notification{
+    UIDevice *device = notification.object;
+    self.frame = [UIScreen mainScreen].bounds;
+    [self initPath];
+    [self setNeedsDisplay];
 }
 
 - (UIViewController *)getControllerFromView:(UIView *)view {
@@ -92,55 +106,68 @@
     _presented = NO;
 }
 
-// Only override drawRect: if you perform custom drawing.
-// An empty implementation adversely affects performance during animation.
+
+- (void)initPath{
+    UIBezierPath *path = [UIBezierPath bezierPath];
+    [path moveToPoint:CGPointZero];
+    [path addLineToPoint:CGPointMake(self.bounds.size.width, 0)];
+    [path addLineToPoint:CGPointMake(self.bounds.size.width, self.bounds.size.height)];
+    [path addLineToPoint:CGPointMake(0, self.bounds.size.height)];
+    [path addLineToPoint:CGPointZero];
+    _basePath = path;
+}
+
+- (void)addLineToBasePathWithCustomView:(UIView *)customView{
+    CGRect convertedFrame = [customView.superview convertRect:customView.frame toView:self];
+    [_basePath moveToPoint:CGPointMake(convertedFrame.origin.x, convertedFrame.origin.y)];
+    [_basePath addLineToPoint:CGPointMake(CGRectGetMaxX(convertedFrame), convertedFrame.origin.y)];
+    [_basePath addLineToPoint:CGPointMake(CGRectGetMaxX(convertedFrame), CGRectGetMaxY(convertedFrame))];
+    [_basePath addLineToPoint:CGPointMake(convertedFrame.origin.x, CGRectGetMaxY(convertedFrame))];
+    [_basePath addLineToPoint:CGPointMake(convertedFrame.origin.x, convertedFrame.origin.y)];
+}
+
+/*
+ * 判断view处于当前引导view中的的位置
+ */
+- (ViewPosition)getViewPositionWithView:(UIView *)view{
+    CGRect convertedFrame = [view.superview convertRect:view.frame toView:self];
+    CGPoint viewCenter = CGPointMake(CGRectGetMidX(convertedFrame), CGRectGetMidY(convertedFrame));
+    if(viewCenter.y < CGRectGetMidY(self.frame)){
+        return ViewPosition_Top;
+    } else{
+        return ViewPosition_Bottom;
+    }
+}
+
 - (void)drawRect:(CGRect)rect {
     // Drawing code
     NSArray *tmpArray = _showGuideViews;
-    
     if(tmpArray.count > 0){
-        CGContextRef context = UIGraphicsGetCurrentContext();
         CAShapeLayer *shapeLayer = [CAShapeLayer layer];
         shapeLayer.frame = rect;
-        UIBezierPath *path = [UIBezierPath bezierPath];
-        [path moveToPoint:CGPointZero];
-        [path addLineToPoint:CGPointMake([UIScreen mainScreen].bounds.size.width, 0)];
-        [path addLineToPoint:CGPointMake([UIScreen mainScreen].bounds.size.width, [UIScreen mainScreen].bounds.size.height)];
-        [path addLineToPoint:CGPointMake(0, [UIScreen mainScreen].bounds.size.height)];
-        [path addLineToPoint:CGPointZero];
-        for (int i = 0; i < tmpArray.count; i++) {
-            UIView *tmpView = tmpArray[i];
-            CGRect convertedFrame = [tmpView.superview convertRect:tmpView.frame toView:self];
-//            CGMutablePathRef path = CGPathCreateMutable();
-//            CGPathMoveToPoint(path, nil, convertedFrame.origin.x, convertedFrame.origin.y);
-//            CGPathAddLineToPoint(path, nil, CGRectGetMaxX(convertedFrame), convertedFrame.origin.y);
-//            CGPathAddLineToPoint(path, nil, CGRectGetMaxX(convertedFrame), CGRectGetMaxY(convertedFrame));
-//            CGPathAddLineToPoint(path, nil, convertedFrame.origin.x, CGRectGetMaxY(convertedFrame));
-//            CGPathAddLineToPoint(path, nil, convertedFrame.origin.x, convertedFrame.origin.y);
-//            CGContextAddPath(context, path);
-//            CGContextSetRGBStrokeColor(context, 1, 1, 1, 1);
-//            CGContextSetLineWidth(context, 1);
-//            CGContextSetLineCap(context, kCGLineCapRound);
-//            CGContextDrawPath(context, kCGPathStroke);
-//            CGPathRelease(path);
-            
-            [path moveToPoint:CGPointMake(convertedFrame.origin.x, convertedFrame.origin.y)];
-            [path addLineToPoint:CGPointMake(CGRectGetMaxX(convertedFrame), convertedFrame.origin.y)];
-            [path addLineToPoint:CGPointMake(CGRectGetMaxX(convertedFrame), CGRectGetMaxY(convertedFrame))];
-            [path addLineToPoint:CGPointMake(convertedFrame.origin.x, CGRectGetMaxY(convertedFrame))];
-            [path addLineToPoint:CGPointMake(convertedFrame.origin.x, convertedFrame.origin.y)];
-        }
-        shapeLayer.path = path.CGPath;
+        UIView *tmpView = tmpArray[guideIndex];
+        [self addLineToBasePathWithCustomView:tmpView];
+        
+        shapeLayer.path = _basePath.CGPath;
         shapeLayer.fillRule = kCAFillRuleEvenOdd;
         self.layer.mask = shapeLayer;
         
+        NSString *testString = @"testString";
+        CGRect convertedFrame = [tmpView.superview convertRect:tmpView.frame toView:self];
+        [testString drawAtPoint:CGPointMake(CGRectGetMidX(convertedFrame), CGRectGetMaxY(convertedFrame)) withAttributes:@{NSFontAttributeName: [UIFont systemFontOfSize:15], NSForegroundColorAttributeName: [UIColor whiteColor]}];
         _presented = YES;
-
     }
 }
 
 - (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event{
 //    [self dismiss];
+    if(guideIndex < _showGuideViews.count - 1){
+        guideIndex+=1;
+        [self initPath];
+        [self setNeedsDisplay];
+    } else {
+        [self dismiss];
+    }
 }
 
 

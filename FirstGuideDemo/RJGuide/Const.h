@@ -12,4 +12,9 @@
 #define RJGUIDE_NOTIFICATION_TYPE_ADD_VIEW @"RJGUIDE_NOTIFICATION_TYPE_ADD_VIEW"
 #define RJGUIDE_NOTIFICATION_TYPE_REMOVE_VIEW @"RJGUIDE_NOTIFICATION_TYPE_REMOVE_VIEW"
 
+typedef NS_ENUM(NSInteger, ViewPosition) {
+    ViewPosition_Top,
+    ViewPosition_Bottom
+};
+
 #endif /* Const_h */

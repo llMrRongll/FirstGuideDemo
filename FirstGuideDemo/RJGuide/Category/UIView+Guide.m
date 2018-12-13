@@ -32,4 +32,12 @@ static char*IntroduceStringKey = "introduceStringKey";
     return t.boolValue;
 }
 
+- (void)setIntroduceString:(NSString *)introduceString{
+    objc_setAssociatedObject(self, IntroduceStringKey, introduceString, OBJC_ASSOCIATION_COPY);
+}
+
+- (NSString *)introduceString{
+    NSString *str = objc_getAssociatedObject(self, IntroduceStringKey);
+    return str;
+}
 @end

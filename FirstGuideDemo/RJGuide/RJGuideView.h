@@ -11,6 +11,10 @@
 NS_ASSUME_NONNULL_BEGIN
 
 @interface RJGuideView : UIView
+
+@property (strong, nonatomic) UIColor *guideViewBackgroundColor;
+@property (strong, nonatomic) UIColor *introduceStringColor;
+
 + (id)sharedInstance;
 - (void)prepareShowGuide;
 @end
