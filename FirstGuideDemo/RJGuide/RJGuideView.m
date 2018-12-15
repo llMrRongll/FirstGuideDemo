@@ -14,7 +14,6 @@
 {
     BOOL _presented;
     NSMutableArray * _showGuideViews;
-    UIBezierPath *_basePath;
     int guideIndex;
 }
 
@@ -23,6 +22,7 @@
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
         guideView = [[self alloc] init];
+        guideView.backgroundColor = [UIColor clearColor];
     });
     return guideView;
 }
@@ -65,7 +65,6 @@
 }
 // 适配一下屏幕旋转
 - (void)screenOrientationChanged:(NSNotification *)notification{
-    UIDevice *device = notification.object;
     self.frame = [UIScreen mainScreen].bounds;
     [self initPath];
     [self setNeedsDisplay];
@@ -108,22 +107,11 @@
 
 
 - (void)initPath{
-    UIBezierPath *path = [UIBezierPath bezierPath];
-    [path moveToPoint:CGPointZero];
-    [path addLineToPoint:CGPointMake(self.bounds.size.width, 0)];
-    [path addLineToPoint:CGPointMake(self.bounds.size.width, self.bounds.size.height)];
-    [path addLineToPoint:CGPointMake(0, self.bounds.size.height)];
-    [path addLineToPoint:CGPointZero];
-    _basePath = path;
+    
 }
 
 - (void)addLineToBasePathWithCustomView:(UIView *)customView{
-    CGRect convertedFrame = [customView.superview convertRect:customView.frame toView:self];
-    [_basePath moveToPoint:CGPointMake(convertedFrame.origin.x, convertedFrame.origin.y)];
-    [_basePath addLineToPoint:CGPointMake(CGRectGetMaxX(convertedFrame), convertedFrame.origin.y)];
-    [_basePath addLineToPoint:CGPointMake(CGRectGetMaxX(convertedFrame), CGRectGetMaxY(convertedFrame))];
-    [_basePath addLineToPoint:CGPointMake(convertedFrame.origin.x, CGRectGetMaxY(convertedFrame))];
-    [_basePath addLineToPoint:CGPointMake(convertedFrame.origin.x, convertedFrame.origin.y)];
+
 }
 
 /*
@@ -143,19 +131,33 @@
     // Drawing code
     NSArray *tmpArray = _showGuideViews;
     if(tmpArray.count > 0){
-        CAShapeLayer *shapeLayer = [CAShapeLayer layer];
-        shapeLayer.frame = rect;
         UIView *tmpView = tmpArray[guideIndex];
-        [self addLineToBasePathWithCustomView:tmpView];
-        
-        shapeLayer.path = _basePath.CGPath;
-        shapeLayer.fillRule = kCAFillRuleEvenOdd;
-        self.layer.mask = shapeLayer;
-        
-        NSString *testString = @"testString";
         CGRect convertedFrame = [tmpView.superview convertRect:tmpView.frame toView:self];
-        [testString drawAtPoint:CGPointMake(CGRectGetMidX(convertedFrame), CGRectGetMaxY(convertedFrame)) withAttributes:@{NSFontAttributeName: [UIFont systemFontOfSize:15], NSForegroundColorAttributeName: [UIColor whiteColor]}];
-        _presented = YES;
+        CGRect topRect = CGRectMake(self.bounds.origin.x, self.frame.origin.y, self.bounds.size.width, convertedFrame.origin.y);
+        CGRect middleLeft = CGRectMake(self.bounds.origin.x, convertedFrame.origin.y, convertedFrame.origin.x, CGRectGetHeight(convertedFrame));
+        CGRect middleRight = CGRectMake(CGRectGetMaxX(convertedFrame), convertedFrame.origin.y, CGRectGetMaxX(self.bounds) - CGRectGetMaxX(convertedFrame), CGRectGetHeight(convertedFrame));
+        CGRect bottomRect = CGRectMake(self.bounds.origin.x, CGRectGetMaxY(convertedFrame), self.bounds.size.width, self.bounds.size.height - CGRectGetMaxY(convertedFrame));
+        
+        
+        CGContextRef context = UIGraphicsGetCurrentContext();
+        CGContextClearRect(context, rect);
+        CGContextSetRGBFillColor(context, 0, 0, 0, 0.6);
+        CGContextFillRect(context, topRect);
+        CGContextFillRect(context, middleLeft);
+        CGContextFillRect(context, middleRight);
+        CGContextFillRect(context, bottomRect);
+        
+        NSString *introduceString = tmpView.introduceString;
+        
+        CGSize introduceStringSize = [introduceString sizeWithAttributes:@{
+                                                                           NSFontAttributeName:[UIFont systemFontOfSize:14],
+                                                                           NSForegroundColorAttributeName: [UIColor whiteColor],
+                                                                           }];
+        CGRect introduceStringRect = CGRectMake(CGRectGetMidX(convertedFrame) - introduceStringSize.width/2, CGRectGetMaxY(convertedFrame)+10, introduceStringSize.width, introduceStringSize.height);
+        [introduceString drawInRect:introduceStringRect withAttributes:@{
+                                                                         NSFontAttributeName:[UIFont systemFontOfSize:14],
+                                                                         NSForegroundColorAttributeName: [UIColor whiteColor],
+                                                                         }]	;
     }
 }
 
@@ -163,11 +165,13 @@
 //    [self dismiss];
     if(guideIndex < _showGuideViews.count - 1){
         guideIndex+=1;
-        [self initPath];
-        [self setNeedsDisplay];
     } else {
+        guideIndex = 0;
         [self dismiss];
     }
+    [self initPath];
+    [self setNeedsDisplay];
+
 }
 
 
