@@ -15,6 +15,7 @@
 		9D0CA33821BFE42A005343B8 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 9D0CA33721BFE42A005343B8 /* main.m */; };
 		9D0CA34121BFEEF7005343B8 /* UIView+Guide.m in Sources */ = {isa = PBXBuildFile; fileRef = 9D0CA34021BFEEF7005343B8 /* UIView+Guide.m */; };
 		9D0CA34A21BFF845005343B8 /* RJGuideView.m in Sources */ = {isa = PBXBuildFile; fileRef = 9D0CA34921BFF845005343B8 /* RJGuideView.m */; };
+		9D2AE05B21C6965900F16B2D /* TableViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 9D2AE05A21C6965900F16B2D /* TableViewController.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -34,6 +35,8 @@
 		9D0CA34321BFF2C9005343B8 /* RJGuide.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RJGuide.h; sourceTree = "<group>"; };
 		9D0CA34821BFF845005343B8 /* RJGuideView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RJGuideView.h; sourceTree = "<group>"; };
 		9D0CA34921BFF845005343B8 /* RJGuideView.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RJGuideView.m; sourceTree = "<group>"; };
+		9D2AE05921C6965900F16B2D /* TableViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TableViewController.h; sourceTree = "<group>"; };
+		9D2AE05A21C6965900F16B2D /* TableViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TableViewController.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -71,6 +74,8 @@
 				9D0CA32921BFE428005343B8 /* AppDelegate.m */,
 				9D0CA32B21BFE428005343B8 /* ViewController.h */,
 				9D0CA32C21BFE428005343B8 /* ViewController.m */,
+				9D2AE05921C6965900F16B2D /* TableViewController.h */,
+				9D2AE05A21C6965900F16B2D /* TableViewController.m */,
 				9D0CA32E21BFE428005343B8 /* Main.storyboard */,
 				9D0CA33121BFE42A005343B8 /* Assets.xcassets */,
 				9D0CA33321BFE42A005343B8 /* LaunchScreen.storyboard */,
@@ -172,6 +177,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				9D0CA32D21BFE428005343B8 /* ViewController.m in Sources */,
+				9D2AE05B21C6965900F16B2D /* TableViewController.m in Sources */,
 				9D0CA33821BFE42A005343B8 /* main.m in Sources */,
 				9D0CA34A21BFF845005343B8 /* RJGuideView.m in Sources */,
 				9D0CA32A21BFE428005343B8 /* AppDelegate.m in Sources */,
@@ -320,6 +326,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = G72D9FR2EH;
 				INFOPLIST_FILE = FirstGuideDemo/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -337,6 +344,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = G72D9FR2EH;
 				INFOPLIST_FILE = FirstGuideDemo/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

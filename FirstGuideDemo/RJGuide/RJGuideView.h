@@ -12,11 +12,17 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface RJGuideView : UIView
 
++ (RJGuideView *)sharedInstance;
+- (void)prepareShowGuide;
+- (void)show;
+
 @property (strong, nonatomic) UIColor *guideViewBackgroundColor;
 @property (strong, nonatomic) UIColor *introduceStringColor;
 
-+ (id)sharedInstance;
-- (void)prepareShowGuide;
+/// 确定按钮背景图片
+@property (strong, nonatomic) UIImage *confirmButtonBackgroundImage;
+
+
 @end
 
 NS_ASSUME_NONNULL_END

@@ -8,6 +8,7 @@
 
 #import "ViewController.h"
 #import "RJGuide.h"
+#import "TableViewController.h"
 
 @interface ViewController ()
 @property (weak, nonatomic) IBOutlet UIButton *button;
@@ -21,27 +22,35 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    self.contentView.showInGuideView = YES;
-    self.contentView.introduceString = @"测试容器";
     
-    self.button.showInGuideView = YES;
-    self.button.introduceString = @"测试按钮1";
-    self.button1.showInGuideView = YES;
-    self.button1.introduceString = @"测试按钮2";
-
-    self.button2.showInGuideView = YES;
-    self.button2.introduceString = @"测试按钮3";
+    
+   
 
     [self.button addTarget:self action:@selector(buttonAction:) forControlEvents:(UIControlEventTouchUpInside)];
-    
+    [self.button1 addTarget:self action:@selector(jump) forControlEvents:(UIControlEventTouchUpInside)];
 
     
     // Do any additional setup after loading the view, typically from a nib.
 }
 
 - (void)buttonAction:(UIButton *)sender{
-//    sender.showInGuideView = !sender.showInGuideView;
+
+    [[RJGuideView sharedInstance] prepareShowGuide];
+    [RJGuideView sharedInstance].confirmButtonBackgroundImage = [UIImage imageNamed:@"buttonbg"];
+    self.button.showInGuideView = YES;
+    self.button.introduceString = @"测试按钮1";
+    
+    self.button1.showInGuideView = YES;
+    self.button1.introduceString = @"测试按钮2";
+    
+    self.button2.showInGuideView = YES;
+    self.button2.introduceString = @"测试按钮3";
     [[RJGuideView sharedInstance] show];
+}
+
+- (void)jump{
+    TableViewController *vc = [[TableViewController alloc] init];
+    [self.navigationController pushViewController:vc animated:YES];
 }
 
 

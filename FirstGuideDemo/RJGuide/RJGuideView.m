@@ -14,10 +14,11 @@
 {
     BOOL _presented;
     NSMutableArray * _showGuideViews;
-    int guideIndex;
+    int _guideIndex;
+    CGRect _touchArea;
 }
 
-+ (id)sharedInstance{
++ (RJGuideView *)sharedInstance{
     static RJGuideView *guideView = nil;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
@@ -30,13 +31,13 @@
 - (instancetype)init{
     if(self = [super init]){
         self.frame = [UIScreen mainScreen].bounds;
-        [self initPath];
         self.layer.backgroundColor = [UIColor colorWithRed:0 green:0 blue:0 alpha:0.5].CGColor;
         _showGuideViews = [[NSMutableArray alloc] init];
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(addView:) name:RJGUIDE_NOTIFICATION_TYPE_ADD_VIEW object:nil];
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(removeView:) name:RJGUIDE_NOTIFICATION_TYPE_REMOVE_VIEW object:nil];
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(screenOrientationChanged:) name:UIDeviceOrientationDidChangeNotification object:nil];
     }
+   
     return self;
 }
 
@@ -49,9 +50,7 @@
 #pragma NotificationObserver
 - (void)addView:(NSNotification *)notification{
     if(![_showGuideViews containsObject:notification.object]){
-        if([self getControllerFromView:notification.object]){
-            [_showGuideViews addObject:notification.object];
-        }
+        [_showGuideViews addObject:notification.object];
     }
     NSLog(@"views count %ld", _showGuideViews.count);
 }
@@ -66,10 +65,10 @@
 // 适配一下屏幕旋转
 - (void)screenOrientationChanged:(NSNotification *)notification{
     self.frame = [UIScreen mainScreen].bounds;
-    [self initPath];
     [self setNeedsDisplay];
 }
 
+// 获取view对应所属的控制器
 - (UIViewController *)getControllerFromView:(UIView *)view {
     // 遍历响应者链。返回第一个找到视图控制器
     UIResponder *responder = view;
@@ -83,12 +82,73 @@
     return nil;
 }
 
+// 获取当前控制器
+-  (UIViewController *)getCurrentVC {
+    for (UIWindow *window in [UIApplication sharedApplication].windows.reverseObjectEnumerator) {
+        
+        UIView *tempView = window.subviews.lastObject;
+        
+        for (UIView *subview in window.subviews.reverseObjectEnumerator) {
+            if ([subview isKindOfClass:NSClassFromString(@"UILayoutContainerView")]) {
+                tempView = subview;
+                break;
+            }
+        }
+        
+        BOOL(^canNext)(UIResponder *) = ^(UIResponder *responder){
+            if (![responder isKindOfClass:[UIViewController class]]) {
+                return YES;
+            } else if ([responder isKindOfClass:[UINavigationController class]]) {
+                return YES;
+            } else if ([responder isKindOfClass:[UITabBarController class]]) {
+                return YES;
+            } else if ([responder isKindOfClass:NSClassFromString(@"UIInputWindowController")]) {
+                return YES;
+            }
+            return NO;
+        };
+        
+        UIResponder *nextResponder = tempView.nextResponder;
+        
+        while (canNext(nextResponder)) {
+            tempView = tempView.subviews.firstObject;
+            if (!tempView) {
+                return nil;
+            }
+            nextResponder = tempView.nextResponder;
+        }
+        
+        UIViewController *currentVC = (UIViewController *)nextResponder;
+        if (currentVC) {
+            return currentVC;
+        }
+    }
+    return nil;
+    
+}
+
 - (void)prepareShowGuide{
     //prepare
+    _guideIndex = 0;
+    [_showGuideViews removeAllObjects];
+
 }
 
 - (void)show{
-    if(_presented){
+    [self dismiss];
+    UIViewController *currentVC = [self getCurrentVC];
+    for(int i = 0; i < _showGuideViews.count;){
+        UIView *tmpView = _showGuideViews[i];
+        UIViewController *vc = [self getControllerFromView:tmpView];
+        if(vc == nil || ![currentVC isEqual:vc]){
+            NSLog(@"删除");
+            [_showGuideViews removeObjectAtIndex:i];
+            i = 0;
+        } else {
+            i++;
+        }
+    }
+    if(_showGuideViews.count == 0){
         return;
     }
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
@@ -101,76 +161,117 @@
 }
 
 - (void)dismiss{
-    [self removeFromSuperview];
     _presented = NO;
-}
-
-
-- (void)initPath{
-    
-}
-
-- (void)addLineToBasePathWithCustomView:(UIView *)customView{
-
-}
-
-/*
- * 判断view处于当前引导view中的的位置
- */
-- (ViewPosition)getViewPositionWithView:(UIView *)view{
-    CGRect convertedFrame = [view.superview convertRect:view.frame toView:self];
-    CGPoint viewCenter = CGPointMake(CGRectGetMidX(convertedFrame), CGRectGetMidY(convertedFrame));
-    if(viewCenter.y < CGRectGetMidY(self.frame)){
-        return ViewPosition_Top;
-    } else{
-        return ViewPosition_Bottom;
-    }
+    _guideIndex = 0;
+    [self removeFromSuperview];
 }
 
 - (void)drawRect:(CGRect)rect {
     // Drawing code
     NSArray *tmpArray = _showGuideViews;
     if(tmpArray.count > 0){
-        UIView *tmpView = tmpArray[guideIndex];
+        UIView *tmpView = tmpArray[_guideIndex];
+        
         CGRect convertedFrame = [tmpView.superview convertRect:tmpView.frame toView:self];
-        CGRect topRect = CGRectMake(self.bounds.origin.x, self.frame.origin.y, self.bounds.size.width, convertedFrame.origin.y);
-        CGRect middleLeft = CGRectMake(self.bounds.origin.x, convertedFrame.origin.y, convertedFrame.origin.x, CGRectGetHeight(convertedFrame));
-        CGRect middleRight = CGRectMake(CGRectGetMaxX(convertedFrame), convertedFrame.origin.y, CGRectGetMaxX(self.bounds) - CGRectGetMaxX(convertedFrame), CGRectGetHeight(convertedFrame));
-        CGRect bottomRect = CGRectMake(self.bounds.origin.x, CGRectGetMaxY(convertedFrame), self.bounds.size.width, self.bounds.size.height - CGRectGetMaxY(convertedFrame));
-        
-        
+        CGFloat(^calculateDistance)(CGPoint point1, CGPoint point2) = ^(CGPoint point1, CGPoint point2) {
+            CGFloat distance = sqrtf(powf(point1.x - point2.x, 2) + powf(point1.y - point2.y, 2));
+            return distance;
+        };
         CGContextRef context = UIGraphicsGetCurrentContext();
         CGContextClearRect(context, rect);
+
+        
+        CGMutablePathRef backgroundPath = CGPathCreateMutable();
+        CGFloat parentRatio = calculateDistance(self.bounds.origin, CGPointMake(CGRectGetMidX(self.bounds), CGRectGetMidY(self.bounds)));
+        CGPathAddArc(backgroundPath, nil, CGRectGetMidX(self.bounds), CGRectGetMidY(self.bounds), parentRatio, 0, -2*M_PI, YES);
+        CGContextAddPath(context, backgroundPath);
+        CGRect tuoyuanRect = convertedFrame;
+
+        if(convertedFrame.size.width < self.bounds.size.width*0.8){
+            tuoyuanRect = CGRectMake(convertedFrame.origin.x - convertedFrame.size.width*0.2, convertedFrame.origin.y - convertedFrame.size.height*0.2, convertedFrame.size.width*1.4, convertedFrame.size.height*1.4);
+            CGContextAddEllipseInRect(context, tuoyuanRect);
+
+        } else {
+            CGContextAddRect(context, convertedFrame);
+        }
+        
+        // 设置填充背景颜色
         CGContextSetRGBFillColor(context, 0, 0, 0, 0.6);
-        CGContextFillRect(context, topRect);
-        CGContextFillRect(context, middleLeft);
-        CGContextFillRect(context, middleRight);
-        CGContextFillRect(context, bottomRect);
+        if(self.guideViewBackgroundColor){
+            [self.guideViewBackgroundColor setFill];
+        }
         
+        // 填充背景路径
+        CGContextEOFillPath(context);
+        
+        // 绘制介绍文字
         NSString *introduceString = tmpView.introduceString;
-        
+        NSMutableParagraphStyle *introduceStringParagraphStyle = [[NSMutableParagraphStyle alloc] init];
+        introduceStringParagraphStyle.lineBreakMode = NSLineBreakByClipping;
         CGSize introduceStringSize = [introduceString sizeWithAttributes:@{
                                                                            NSFontAttributeName:[UIFont systemFontOfSize:14],
-                                                                           NSForegroundColorAttributeName: [UIColor whiteColor],
+                                                                           NSForegroundColorAttributeName: self.introduceStringColor? self.introduceStringColor : [UIColor whiteColor],
+                                                                           NSParagraphStyleAttributeName: introduceStringParagraphStyle
                                                                            }];
-        CGRect introduceStringRect = CGRectMake(CGRectGetMidX(convertedFrame) - introduceStringSize.width/2, CGRectGetMaxY(convertedFrame)+10, introduceStringSize.width, introduceStringSize.height);
-        [introduceString drawInRect:introduceStringRect withAttributes:@{
-                                                                         NSFontAttributeName:[UIFont systemFontOfSize:14],
-                                                                         NSForegroundColorAttributeName: [UIColor whiteColor],
-                                                                         }]	;
+        CGRect introduceStringRect = CGRectMake(CGRectGetMidX(tuoyuanRect) - introduceStringSize.width/2, CGRectGetMaxY(tuoyuanRect)+10, introduceStringSize.width, introduceStringSize.height);
+        
+        // 判断介绍文字绘制的位置
+        if(CGRectGetMaxY(introduceStringRect) > self.bounds.size.height){
+            introduceStringRect = CGRectMake(CGRectGetMidX(tuoyuanRect) - introduceStringSize.width/2, CGRectGetMinY(tuoyuanRect)-10-introduceStringSize.height, introduceStringSize.width, introduceStringSize.height);
+        }
+        NSDictionary *attrDic = @{
+                                  NSFontAttributeName:[UIFont systemFontOfSize:14],
+                                  NSForegroundColorAttributeName: [UIColor whiteColor],
+                                  NSParagraphStyleAttributeName: introduceStringParagraphStyle
+                                  };
+        
+
+        [introduceString drawInRect:introduceStringRect withAttributes:attrDic];
+        
+        // 绘制确定按钮
+        
+        
+        _touchArea = CGRectMake(CGRectGetMidX(rect) - 40, CGRectGetMaxY(rect) - 80, 80, 40);
+        if(CGRectGetMaxY(convertedFrame) >= _touchArea.origin.y || abs((int)(_touchArea.origin.y-CGRectGetMaxY(convertedFrame))) <= rect.size.height*0.15){
+            _touchArea = CGRectMake(CGRectGetMidX(rect) - 40, CGRectGetMidY(rect) - 80, 80, 40);
+        }
+        if(self.confirmButtonBackgroundImage){
+            [self.confirmButtonBackgroundImage drawInRect:_touchArea];
+        }
+        
+        NSString *buttonTitle = @"知道了";
+        NSMutableParagraphStyle *paragraphStyle = [[NSMutableParagraphStyle alloc] init];
+        paragraphStyle.alignment = NSTextAlignmentCenter;
+        
+        CGSize buttonTitleSize = [buttonTitle sizeWithAttributes:@{
+                                                                   NSFontAttributeName: [UIFont systemFontOfSize:14],
+                                                                   NSForegroundColorAttributeName: [UIColor whiteColor],
+                                                                   NSParagraphStyleAttributeName:paragraphStyle
+                                                                   }];
+        [buttonTitle drawInRect:CGRectMake(_touchArea.origin.x, CGRectGetMidY(_touchArea)-buttonTitleSize.height/2, _touchArea.size.width, buttonTitleSize.height) withAttributes:@{
+                                                            NSFontAttributeName: [UIFont systemFontOfSize:14],
+                                                            NSForegroundColorAttributeName: [UIColor whiteColor],
+                                                            NSParagraphStyleAttributeName:paragraphStyle
+                                                            }];
+        
     }
 }
 
 - (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event{
-//    [self dismiss];
-    if(guideIndex < _showGuideViews.count - 1){
-        guideIndex+=1;
-    } else {
-        guideIndex = 0;
-        [self dismiss];
+    
+    UITouch *oneTouch = [[touches allObjects] lastObject];
+    CGPoint touchLocation = [oneTouch locationInView:self];
+    if(CGRectContainsPoint(_touchArea, touchLocation)){
+        if(_guideIndex < _showGuideViews.count - 1){
+            _guideIndex+=1;
+        } else {
+            [_showGuideViews removeAllObjects];
+            [self dismiss];
+        }
+        [self setNeedsDisplay];
     }
-    [self initPath];
-    [self setNeedsDisplay];
+    
+    
 
 }
 
