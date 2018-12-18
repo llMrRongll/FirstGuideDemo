@@ -16,7 +16,10 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)prepareShowGuide;
 - (void)show;
 
+/// 背景颜色
 @property (strong, nonatomic) UIColor *guideViewBackgroundColor;
+
+/// 控件描述文字的颜色
 @property (strong, nonatomic) UIColor *introduceStringColor;
 
 /// 确定按钮背景图片

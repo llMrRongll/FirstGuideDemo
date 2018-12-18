@@ -23,9 +23,6 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     
-    
-   
-
     [self.button addTarget:self action:@selector(buttonAction:) forControlEvents:(UIControlEventTouchUpInside)];
     [self.button1 addTarget:self action:@selector(jump) forControlEvents:(UIControlEventTouchUpInside)];
 
